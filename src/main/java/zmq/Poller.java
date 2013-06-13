@@ -37,12 +37,14 @@ public class Poller extends PollerBase implements Runnable {
         protected SelectionKey key;
         protected int ops;
         protected boolean cancelled;
+        private int closed;
         
         protected PollSet(IPollEvents handler) {
             this.handler = handler;
             key = null;
             cancelled = false;
             ops = 0;
+            closed = 0;
         }
     }
     //  This table stores data for registered descriptors.
@@ -92,30 +94,26 @@ public class Poller extends PollerBase implements Runnable {
             }
         }
     }
+    
     public final void add_fd (SelectableChannel fd_, IPollEvents events_)
     {
         fd_table.put(fd_, new PollSet(events_));
         
-        adjust_load (1);
-        
+        adjust_load (1);   
     }
-    
 
     public final void rm_fd(SelectableChannel handle) {
-        
         fd_table.get(handle).cancelled = true;
         retired = true;
 
         //  Decrease the load metric of the thread.
         adjust_load (-1);
     }
-    
 
     public final void set_pollin (SelectableChannel handle_)
     {
         register(handle_, SelectionKey.OP_READ, false);
     }
-    
 
     public final void reset_pollin (SelectableChannel handle_) {
         register(handle_, SelectionKey.OP_READ, true);
@@ -183,10 +181,14 @@ public class Poller extends PollerBase implements Runnable {
                         try {
                             pollset.key = ch.register(selector, pollset.ops, pollset.handler);
                         } catch (ClosedChannelException e) {
-                            continue;
                         }
-                    } else if (pollset.cancelled) {
-                        pollset.key.cancel ();
+                    } 
+                    
+                    
+                    if (pollset.cancelled || !ch.isOpen()) {
+                        if(pollset.key != null) {
+                            pollset.key.cancel();
+                        }
                         it.remove ();
                     }
                 }
