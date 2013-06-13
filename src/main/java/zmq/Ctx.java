@@ -158,8 +158,11 @@ public class Ctx {
     //  no more sockets open it'll cause all the infrastructure to be shut
     //  down. If there are open sockets still, the deallocation happens
     //  after the last one is closed.
-    
     public void terminate() {
+        terminate(-1);
+    }
+    
+    public void terminate(long timeout_) {
         
         tag = 0xdeadbeef;
         
@@ -191,7 +194,7 @@ public class Ctx {
 
             //  Wait till reaper thread closes all the sockets.
             Command cmd;
-            cmd = term_mailbox.recv (-1);
+            cmd = term_mailbox.recv (timeout_);
             if (cmd == null)
                 throw new IllegalStateException();
             assert (cmd.type() == Command.Type.done);

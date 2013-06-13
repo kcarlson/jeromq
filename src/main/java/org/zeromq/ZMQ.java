@@ -190,6 +190,10 @@ public class ZMQ {
             ctx.terminate();
         }
 
+        public void term(long timeout_) {
+            ctx.terminate(timeout_);
+        }
+
         /**
          * Create a new Socket within this context.
          *
